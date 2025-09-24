@@ -1,0 +1,14 @@
+[workspace]
+members = [
+    "contracts/staking_vault",
+    "contracts/game_engine", 
+    "contracts/payment_router",
+    "contracts/privacy_layer"
+]
+
+[workspace.dependencies]
+starknet = "2.4.0"
+openzeppelin = { git = "https://github.com/OpenZeppelin/cairo-contracts.git", tag = "v0.8.0" }
+
+[workspace.tool.snforge]
+exit_first = true
