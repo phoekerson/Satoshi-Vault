@@ -3,6 +3,14 @@ set -euo pipefail
 
 # Config
 PROFILE="sepolia"
+SNCAST_BIN="${SNCAST_BIN:-}"
+if [ -z "$SNCAST_BIN" ]; then
+  if [ -x "$HOME/.cargo/bin/sncast" ]; then
+    SNCAST_BIN="$HOME/.cargo/bin/sncast"
+  else
+    SNCAST_BIN="sncast"
+  fi
+fi
 DEPLOY_OUT_DIR="/home/caleb/satoshi_vault/deployments"
 FRONT_ENV="/home/caleb/satoshi_vault/frontend/.env.local"
 mkdir -p "$DEPLOY_OUT_DIR"
@@ -40,30 +48,30 @@ for f in "$STAKING_SIERRA" "$GAME_SIERRA" "$PRIV_SIERRA" "$ROUTER_SIERRA"; do
 done
 
 echo "==> Declare classes"
-STAKING_CLASS_HASH=$(sncast --profile "$PROFILE" declare --contract "$STAKING_SIERRA" --max-fee auto | awk '/class_hash/ {print $2}')
-GAME_CLASS_HASH=$(sncast --profile "$PROFILE" declare --contract "$GAME_SIERRA" --max-fee auto | awk '/class_hash/ {print $2}')
-PRIV_CLASS_HASH=$(sncast --profile "$PROFILE" declare --contract "$PRIV_SIERRA" --max-fee auto | awk '/class_hash/ {print $2}')
-ROUTER_CLASS_HASH=$(sncast --profile "$PROFILE" declare --contract "$ROUTER_SIERRA" --max-fee auto | awk '/class_hash/ {print $2}')
+STAKING_CLASS_HASH=$($SNCAST_BIN --profile "$PROFILE" declare --contract "$STAKING_SIERRA" --max-fee auto | awk '/class_hash/ {print $2}')
+GAME_CLASS_HASH=$($SNCAST_BIN --profile "$PROFILE" declare --contract "$GAME_SIERRA" --max-fee auto | awk '/class_hash/ {print $2}')
+PRIV_CLASS_HASH=$($SNCAST_BIN --profile "$PROFILE" declare --contract "$PRIV_SIERRA" --max-fee auto | awk '/class_hash/ {print $2}')
+ROUTER_CLASS_HASH=$($SNCAST_BIN --profile "$PROFILE" declare --contract "$ROUTER_SIERRA" --max-fee auto | awk '/class_hash/ {print $2}')
 
 echo "==> Deploy Staking Vault"
-ADMIN="$(sncast --profile "$PROFILE" account address)"
+ADMIN="$($SNCAST_BIN --profile "$PROFILE" account address)"
 APY=300  # 3.00% APY in basis points
 MIN_STAKE=1000
 MAX_STAKE=21000000000000
-STAKING_ADDR=$(sncast --profile "$PROFILE" deploy --class-hash "$STAKING_CLASS_HASH" \
+STAKING_ADDR=$($SNCAST_BIN --profile "$PROFILE" deploy --class-hash "$STAKING_CLASS_HASH" \
   --constructor-calldata "$ADMIN" "$APY" "$MIN_STAKE" "$MAX_STAKE" --max-fee auto | awk '/contract_address/ {print $2}')
 
 echo "==> Deploy Game Engine"
 NFT_ADDR=0x0
-GAME_ADDR=$(sncast --profile "$PROFILE" deploy --class-hash "$GAME_CLASS_HASH" \
+GAME_ADDR=$($SNCAST_BIN --profile "$PROFILE" deploy --class-hash "$GAME_CLASS_HASH" \
   --constructor-calldata "$ADMIN" "$STAKING_ADDR" "$NFT_ADDR" --max-fee auto | awk '/contract_address/ {print $2}')
 
 echo "==> Deploy Privacy Layer"
-PRIV_ADDR=$(sncast --profile "$PROFILE" deploy --class-hash "$PRIV_CLASS_HASH" \
+PRIV_ADDR=$($SNCAST_BIN --profile "$PROFILE" deploy --class-hash "$PRIV_CLASS_HASH" \
   --constructor-calldata "$ADMIN" "$STAKING_ADDR" --max-fee auto | awk '/contract_address/ {print $2}')
 
 echo "==> Deploy Payment Router"
-ROUTER_ADDR=$(sncast --profile "$PROFILE" deploy --class-hash "$ROUTER_CLASS_HASH" \
+ROUTER_ADDR=$($SNCAST_BIN --profile "$PROFILE" deploy --class-hash "$ROUTER_CLASS_HASH" \
   --constructor-calldata "$ADMIN" "$STAKING_ADDR" "$GAME_ADDR" "$PRIV_ADDR" --max-fee auto | awk '/contract_address/ {print $2}')
 
 echo "==> Save deployment outputs"
@@ -100,4 +108,5 @@ NEXT_PUBLIC_PAYMENT_ROUTER_ADDRESS=$ROUTER_ADDR
 ENV
 
 echo "==> Done. Addresses saved to $DEPLOY_OUT_DIR/sepolia.json and $FRONT_ENV"
+
 

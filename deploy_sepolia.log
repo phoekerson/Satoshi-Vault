@@ -1,0 +1,104 @@
+==> START Tue Oct 14 10:45:57 CEST 2025
+==> Clean outputs
+==> Build all
+   Compiling staking_vault v0.1.0 (/home/caleb/satoshi_vault/contracts/staking_vault/Scarb.toml)
+    Finished `dev` profile target(s) in 24 seconds
+   Compiling game_engine v0.1.0 (/home/caleb/satoshi_vault/contracts/game_engine/Scarb.toml)
+    Finished `dev` profile target(s) in 32 seconds
+   Compiling privacy_layer v0.1.0 (/home/caleb/satoshi_vault/contracts/privacy_layer/Scarb.toml)
+warn: Unused import: `privacy_layer::StoragePointerReadAccess`
+ --> /home/caleb/satoshi_vault/contracts/privacy_layer/src/lib.cairo:3:31
+use core::starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess};
+                              ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warn: Unused import: `privacy_layer::StoragePointerWriteAccess`
+ --> /home/caleb/satoshi_vault/contracts/privacy_layer/src/lib.cairo:3:57
+use core::starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess};
+                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warn: Unused import: `privacy_layer::Map`
+ --> /home/caleb/satoshi_vault/contracts/privacy_layer/src/lib.cairo:4:30
+use core::starknet::storage::Map;
+                             ^^^
+
+warn: Unused import: `privacy_layer::StorageMapReadAccess`
+ --> /home/caleb/satoshi_vault/contracts/privacy_layer/src/lib.cairo:5:31
+use core::starknet::storage::{StorageMapReadAccess, StorageMapWriteAccess};
+                              ^^^^^^^^^^^^^^^^^^^^
+
+warn: Unused import: `privacy_layer::StorageMapWriteAccess`
+ --> /home/caleb/satoshi_vault/contracts/privacy_layer/src/lib.cairo:5:53
+use core::starknet::storage::{StorageMapReadAccess, StorageMapWriteAccess};
+                                                    ^^^^^^^^^^^^^^^^^^^^^
+
+warn: Usage of deprecated feature `"corelib-internal-use"` with no `#[feature("corelib-internal-use")]` attribute. Note: "Use `starknet` directly"
+ --> /home/caleb/satoshi_vault/contracts/privacy_layer/src/lib.cairo:3:11
+use core::starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess};
+          ^^^^^^^^
+
+warn: Usage of deprecated feature `"corelib-internal-use"` with no `#[feature("corelib-internal-use")]` attribute. Note: "Use `starknet` directly"
+ --> /home/caleb/satoshi_vault/contracts/privacy_layer/src/lib.cairo:4:11
+use core::starknet::storage::Map;
+          ^^^^^^^^
+
+warn: Usage of deprecated feature `"corelib-internal-use"` with no `#[feature("corelib-internal-use")]` attribute. Note: "Use `starknet` directly"
+ --> /home/caleb/satoshi_vault/contracts/privacy_layer/src/lib.cairo:5:11
+use core::starknet::storage::{StorageMapReadAccess, StorageMapWriteAccess};
+          ^^^^^^^^
+
+warn: Usage of deprecated feature `"corelib-internal-use"` with no `#[feature("corelib-internal-use")]` attribute. Note: "Use `starknet` directly"
+ --> /home/caleb/satoshi_vault/contracts/privacy_layer/src/lib.cairo:55:15
+    use core::starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess};
+              ^^^^^^^^
+
+warn: Usage of deprecated feature `"corelib-internal-use"` with no `#[feature("corelib-internal-use")]` attribute. Note: "Use `starknet` directly"
+ --> /home/caleb/satoshi_vault/contracts/privacy_layer/src/lib.cairo:56:15
+    use core::starknet::storage::Map;
+              ^^^^^^^^
+
+warn: Usage of deprecated feature `"corelib-internal-use"` with no `#[feature("corelib-internal-use")]` attribute. Note: "Use `starknet` directly"
+ --> /home/caleb/satoshi_vault/contracts/privacy_layer/src/lib.cairo:57:15
+    use core::starknet::storage::{StorageMapReadAccess, StorageMapWriteAccess};
+              ^^^^^^^^
+
+    Finished `dev` profile target(s) in 30 seconds
+   Compiling payment_router v0.1.0 (/home/caleb/satoshi_vault/contracts/payment_router/Scarb.toml)
+warn: Unused import: `payment_router::StoragePointerReadAccess`
+ --> /home/caleb/satoshi_vault/contracts/payment_router/src/lib.cairo:3:25
+use starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess};
+                        ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warn: Unused import: `payment_router::StoragePointerWriteAccess`
+ --> /home/caleb/satoshi_vault/contracts/payment_router/src/lib.cairo:3:51
+use starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess};
+                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warn: Unused import: `payment_router::Map`
+ --> /home/caleb/satoshi_vault/contracts/payment_router/src/lib.cairo:4:24
+use starknet::storage::Map;
+                       ^^^
+
+warn: Unused import: `payment_router::StorageMapReadAccess`
+ --> /home/caleb/satoshi_vault/contracts/payment_router/src/lib.cairo:5:25
+use starknet::storage::{StorageMapReadAccess, StorageMapWriteAccess};
+                        ^^^^^^^^^^^^^^^^^^^^
+
+warn: Unused import: `payment_router::StorageMapWriteAccess`
+ --> /home/caleb/satoshi_vault/contracts/payment_router/src/lib.cairo:5:47
+use starknet::storage::{StorageMapReadAccess, StorageMapWriteAccess};
+                                              ^^^^^^^^^^^^^^^^^^^^^
+
+warn: Usage of deprecated feature `"deprecated-starknet-consts"` with no `#[feature("deprecated-starknet-consts")]` attribute. Note: "Use `TryInto::try_into` in const context instead."
+ --> /home/caleb/satoshi_vault/contracts/payment_router/src/lib.cairo:200:59
+            let zero_address: ContractAddress = starknet::contract_address_const::<0>();
+                                                          ^^^^^^^^^^^^^^^^^^^^^^
+
+warn: Usage of deprecated feature `"deprecated-starknet-consts"` with no `#[feature("deprecated-starknet-consts")]` attribute. Note: "Use `TryInto::try_into` in const context instead."
+ --> /home/caleb/satoshi_vault/contracts/payment_router/src/lib.cairo:299:59
+            let zero_address: ContractAddress = starknet::contract_address_const::<0>();
+                                                          ^^^^^^^^^^^^^^^^^^^^^^
+
+    Finished `dev` profile target(s) in 23 seconds
+==> Sierra files
+find: ‘/home/caleb/satoshi_vault/contracts/staking_vault/target/dev’: No such file or directory
+0x0453e3dd74d046681efce9355d6d2eabcbf6aff80d8b793293e5adacf854fa43

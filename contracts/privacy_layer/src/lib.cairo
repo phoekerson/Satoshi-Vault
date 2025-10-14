@@ -2,32 +2,7 @@ use starknet::ContractAddress;
 use starknet::get_caller_address;
 use core::starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess};
 use core::starknet::storage::Map;
-use core::starknet::storage::StorageMapReadAccess;
-use core::starknet::storage::StorageMapWriteAccess;
-
-/// Interface for Privacy Layer
-#[starknet::interface]
-pub trait IPrivacyLayer<TContractState> {
-    /// Create a private stake with encrypted amount
-    fn create_private_stake(ref self: TContractState, encrypted_amount: felt252, commitment: felt252) -> u256;
-    /// Verify private stake without revealing amount
-    fn verify_private_stake(self: @ContractState, stake_id: u256, proof: Array<felt252>) -> bool;
-    /// Get commitment for a private stake
-    fn get_stake_commitment(self: @ContractState, stake_id: u256) -> felt252;
-    /// Update private stake
-    fn update_private_stake(ref self: TContractState, stake_id: u256, new_commitment: felt252);
-    /// Generate zero-knowledge proof for stake amount
-    fn generate_stake_proof(self: @ContractState, stake_id: u256, secret: felt252) -> Array<felt252>;
-    /// Verify zero-knowledge proof
-    fn verify_proof(self: @ContractState, proof: Array<felt252>, commitment: felt252) -> bool;
-    /// Get privacy settings for a user
-    fn get_privacy_settings(self: @ContractState, user: ContractAddress) -> PrivacySettings;
-    /// Set privacy settings
-    fn set_privacy_settings(ref self: TContractState, settings: PrivacySettings);
-    /// Admin functions
-    fn set_verification_key(ref self: TContractState, key: felt252);
-    fn set_encryption_key(ref self: TContractState, key: felt252);
-}
+use core::starknet::storage::{StorageMapReadAccess, StorageMapWriteAccess};
 
 /// Privacy settings structure
 #[derive(Drop, Serde, starknet::Store)]
@@ -49,17 +24,37 @@ pub struct PrivateStake {
     pub proof_hash: felt252,
 }
 
+/// Interface for Privacy Layer
+#[starknet::interface]
+pub trait IPrivacyLayer<TContractState> {
+    /// Create a private stake with encrypted amount
+    fn create_private_stake(ref self: TContractState, encrypted_amount: felt252, commitment: felt252) -> u256;
+    /// Verify private stake without revealing amount
+    fn verify_private_stake(self: @TContractState, stake_id: u256, proof: Array<felt252>) -> bool;
+    /// Get commitment for a private stake
+    fn get_stake_commitment(self: @TContractState, stake_id: u256) -> felt252;
+    /// Update private stake
+    fn update_private_stake(ref self: TContractState, stake_id: u256, new_commitment: felt252);
+    /// Generate zero-knowledge proof for stake amount
+    fn generate_stake_proof(self: @TContractState, stake_id: u256, secret: felt252) -> Array<felt252>;
+    /// Verify zero-knowledge proof
+    fn verify_proof(self: @TContractState, proof: Array<felt252>, commitment: felt252) -> bool;
+    /// Get privacy settings for a user
+    fn get_privacy_settings(self: @TContractState, user: ContractAddress) -> PrivacySettings;
+    /// Set privacy settings
+    fn set_privacy_settings(ref self: TContractState, settings: PrivacySettings);
+    /// Admin functions
+    fn set_verification_key(ref self: TContractState, key: felt252);
+    fn set_encryption_key(ref self: TContractState, key: felt252);
+}
+
 /// Privacy Layer Contract
 #[starknet::contract]
 pub mod PrivacyLayer {
-    use super::{
-        PrivacySettings, PrivateStake, IPrivacyLayer, ContractAddress, get_caller_address
-    };
+    use super::{PrivacySettings, PrivateStake, ContractAddress, get_caller_address};
     use core::starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess};
     use core::starknet::storage::Map;
-    use core::starknet::storage::StorageMapReadAccess;
-    use core::starknet::storage::StorageMapWriteAccess;
-    use core::array::ArrayTrait;
+    use core::starknet::storage::{StorageMapReadAccess, StorageMapWriteAccess};
 
     #[storage]
     struct Storage {
@@ -101,7 +96,7 @@ pub mod PrivacyLayer {
     }
 
     #[abi(embed_v0)]
-    impl PrivacyLayerImpl of IPrivacyLayer<ContractState> {
+    impl PrivacyLayerImpl of super::IPrivacyLayer<ContractState> {
         fn create_private_stake(ref self: ContractState, encrypted_amount: felt252, commitment: felt252) -> u256 {
             let caller = get_caller_address();
             let stake_id = self.next_private_stake_id.read();
@@ -121,9 +116,10 @@ pub mod PrivacyLayer {
             self.private_stakes.write(stake_id, private_stake);
             
             // Update user's private stake count
-            let user_count = self.user_private_stake_count.read(caller) + 1;
-            self.user_private_stakes.write((caller, user_count), stake_id);
-            self.user_private_stake_count.write(caller, user_count);
+            let user_count = self.user_private_stake_count.read(caller);
+            let new_count = user_count + 1;
+            self.user_private_stakes.write((caller, new_count), stake_id);
+            self.user_private_stake_count.write(caller, new_count);
             
             stake_id
         }
@@ -217,20 +213,30 @@ pub mod PrivacyLayer {
         fn _hash(self: @ContractState, a: felt252, b: felt252) -> felt252 {
             // Simple hash function (in real implementation, use proper cryptographic hash)
             let key = self.verification_key.read();
-            (a + b + key) % 1000000007
+            let sum = a.into() + b.into() + key.into();
+            let result: u256 = sum % 1000000007;
+            result.try_into().unwrap()
         }
 
         fn _encrypt_amount(self: @ContractState, amount: u256) -> felt252 {
             let key = self.encryption_key.read();
             // Simple encryption (in real implementation, use proper encryption)
-            (amount.into() + key) % 1000000007
+            let encrypted: u256 = (amount + key.into()) % 1000000007;
+            encrypted.try_into().unwrap()
         }
 
         fn _decrypt_amount(self: @ContractState, encrypted: felt252) -> u256 {
             let key = self.encryption_key.read();
+            let encrypted_u256: u256 = encrypted.into();
+            let key_u256: u256 = key.into();
+            
             // Simple decryption (in real implementation, use proper decryption)
-            let decrypted = (encrypted - key) % 1000000007;
-            decrypted.try_into().unwrap()
+            if encrypted_u256 >= key_u256 {
+                (encrypted_u256 - key_u256) % 1000000007
+            } else {
+                let modulo: u256 = 1000000007;
+                (modulo + encrypted_u256 - key_u256) % modulo
+            }
         }
     }
 }

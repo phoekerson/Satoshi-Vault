@@ -15,7 +15,8 @@ fn deploy_contract(name: ByteArray) -> ContractAddress {
 
 #[test]
 fn test_increase_balance() {
-    let contract_address = deploy_contract("HelloStarknet");
+    let contract_addreqqq
+    ss = deploy_contract("HelloStarknet");
 
     let dispatcher = IHelloStarknetDispatcher { contract_address };
 

@@ -1,0 +1,8 @@
+{
+  "network":"sepolia",
+  "admin":"0x36090e9389221b47efa9e880354328234196bb1c3ada738abf967d4733766f5",
+  "staking_vault":{"class_hash":"0x0453e3dd74d046681efce9355d6d2eabcbf6aff80d8b793293e5adacf854fa43","address":"0x00b7d8b308b53ba13da7260143d2897b9f58a0d194a8aa370444b7c0e1748495"},
+  "game_engine":{"class_hash":"0x02d226fc8daa73a6ac1cfbee28c0481ed63dde05689c6f26959f55f8dee0358f","address":""},
+  "privacy_layer":{"class_hash":"0x052c682a0f74f7f31d4044c6f82ac5069b41dbe7f8cef8a1f364c21bd4d74120","address":""},
+  "payment_router":{"class_hash":"0x06fb46808b92ab7c33f3b9f2cd6b737385098e5cd4b8010fe0829e6623ce101c","address":""}
+}
