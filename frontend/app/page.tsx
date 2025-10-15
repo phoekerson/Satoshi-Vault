@@ -1,89 +1,162 @@
-"use client"
+'use client';
 
-import { useState } from "react"
-import { StakingDashboard } from "@/components/staking/staking-dashboard"
-import { GamificationDashboard } from "@/components/gamification/gamification-dashboard"
-import { PrivacyDashboard } from "@/components/privacy/privacy-dashboard"
-import { PaymentRouterDashboard } from "@/components/payment-router/payment-router-dashboard"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Bitcoin, Trophy, Shield, ArrowRightLeft } from "lucide-react"
+import { useEffect, useState } from 'react';
+import { useWalletStore } from '@/store/walletStore';
+import { useStaking } from '@/hooks/useStaking';
+import { useGameEngine } from '@/hooks/useGameEngine';
+import WalletConnect from '@/components/WalletConnect';
+import StakeForm from '@/components/StakeForm';
+import UserStakes from '@/components/UserStakes';
+import StatsCard from '@/components/StatsCard';
+import Leaderboard from '@/components/Leaderboard';
+import Achievements from '@/components/Achievements';
+import { Bitcoin, TrendingUp, Users, Award, Lock } from 'lucide-react';
+import Link from 'next/link';
 
-type TabType = "staking" | "gamification" | "privacy" | "payment"
+export default function Home() {
+  const { isConnected, address } = useWalletStore();
+  const { getTotalStaked, getUserStaked, getCurrentAPY } = useStaking();
+  const { getUserProfile } = useGameEngine();
+  
+  const [totalStaked, setTotalStaked] = useState('0');
+  const [userStaked, setUserStaked] = useState('0');
+  const [currentAPY, setCurrentAPY] = useState('0');
+  const [userScore, setUserScore] = useState('0');
+  const [userLevel, setUserLevel] = useState(0);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-export default function HomePage() {
-  const [activeTab, setActiveTab] = useState<TabType>("staking")
+  useEffect(() => {
+    loadStats();
+  }, [isConnected, address, refreshKey]);
 
-  const tabs = [
-    { id: "staking" as TabType, name: "Staking", icon: Bitcoin },
-    { id: "gamification" as TabType, name: "Gamification", icon: Trophy },
-    { id: "privacy" as TabType, name: "Privacy", icon: Shield },
-    { id: "payment" as TabType, name: "Payment Router", icon: ArrowRightLeft },
-  ]
+  const loadStats = async () => {
+    const total = await getTotalStaked();
+    if (total) setTotalStaked(total);
 
-  const renderContent = () => {
-    switch (activeTab) {
-      case "staking":
-        return <StakingDashboard />
-      case "gamification":
-        return <GamificationDashboard />
-      case "privacy":
-        return <PrivacyDashboard />
-      case "payment":
-        return <PaymentRouterDashboard />
-      default:
-        return <StakingDashboard />
+    const apy = await getCurrentAPY();
+    if (apy) setCurrentAPY(apy);
+
+    if (isConnected) {
+      const userStake = await getUserStaked();
+      if (userStake) setUserStaked(userStake);
+
+      const profile = await getUserProfile();
+      if (profile) {
+        setUserScore(profile.total_score);
+        setUserLevel(profile.level);
+      }
     }
-  }
+  };
+
+  const formatBTC = (satoshis: string) => {
+    return (parseInt(satoshis) / 100000000).toFixed(4);
+  };
+
+  const formatAPY = (basisPoints: string) => {
+    return (parseInt(basisPoints) / 100).toFixed(2);
+  };
+
+  const handleStakeSuccess = () => {
+    setRefreshKey(prev => prev + 1);
+  };
 
   return (
-    <div className="space-y-6">
-      {/* Welcome Section */}
-      <Card className="bg-gradient-to-r from-orange-500 to-yellow-500 text-white">
-        <CardHeader>
-          <CardTitle className="text-3xl font-bold">Welcome to Satoshi Vault</CardTitle>
-          <CardDescription className="text-orange-100">
-            The future of Bitcoin staking on Starknet with privacy, gamification, and multi-chain support
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center space-x-4">
-            <div className="text-center">
-              <p className="text-2xl font-bold">3%</p>
-              <p className="text-sm text-orange-100">Current APY</p>
+    <div className="min-h-screen">
+      {/* Header */}
+      <header className="border-b border-gray-800">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Bitcoin className="w-8 h-8 text-bitcoin-500" />
+              <h1 className="text-2xl font-bold">Bitcoin Staking</h1>
             </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold">ZK</p>
-              <p className="text-sm text-orange-100">Privacy Layer</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold">4</p>
-              <p className="text-sm text-orange-100">Chains Supported</p>
+            
+            <nav className="hidden md:flex items-center gap-6 mr-8">
+              <Link href="/" className="hover:text-bitcoin-500 transition-colors">
+                Dashboard
+              </Link>
+              <Link href="/bridge" className="hover:text-bitcoin-500 transition-colors">
+                Bridge
+              </Link>
+              <Link href="/privacy" className="hover:text-bitcoin-500 transition-colors">
+                Privacy
+              </Link>
+            </nav>
+
+            <WalletConnect />
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="container mx-auto px-4 py-8">
+        {/* Stats Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <StatsCard
+            title="Total Staked"
+            value={`${formatBTC(totalStaked)} BTC`}
+            icon={Lock}
+            color="text-bitcoin-500"
+          />
+          <StatsCard
+            title="Current APY"
+            value={`${formatAPY(currentAPY)}%`}
+            subtitle="Annual Percentage Yield"
+            icon={TrendingUp}
+            color="text-green-500"
+          />
+          <StatsCard
+            title="Your Stake"
+            value={isConnected ? `${formatBTC(userStaked)} BTC` : '-'}
+            icon={Bitcoin}
+            color="text-blue-500"
+          />
+          <StatsCard
+            title="Your Level"
+            value={isConnected ? `Level ${userLevel}` : '-'}
+            subtitle={isConnected ? `${parseInt(userScore).toLocaleString()} points` : 'Not connected'}
+            icon={Award}
+            color="text-purple-500"
+          />
+        </div>
+
+        {/* Main Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column - Staking */}
+          <div className="lg:col-span-2 space-y-8">
+            <StakeForm onSuccess={handleStakeSuccess} />
+            <UserStakes key={refreshKey} />
+          </div>
+
+          {/* Right Column - Gamification */}
+          <div className="space-y-8">
+            <Leaderboard />
+            <Achievements />
+          </div>
+        </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t border-gray-800 mt-16">
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-between">
+            <p className="text-gray-400 text-sm">
+              © 2024 Bitcoin Staking on Starknet
+            </p>
+            <div className="flex items-center gap-4 text-sm text-gray-400">
+              <a href="#" className="hover:text-bitcoin-500 transition-colors">
+                Docs
+              </a>
+              <a href="#" className="hover:text-bitcoin-500 transition-colors">
+                GitHub
+              </a>
+              <a href="#" className="hover:text-bitcoin-500 transition-colors">
+                Twitter
+              </a>
             </div>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Tab Navigation */}
-      <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
-        {tabs.map((tab) => {
-          const Icon = tab.icon
-          return (
-            <Button
-              key={tab.id}
-              variant={activeTab === tab.id ? "default" : "ghost"}
-              onClick={() => setActiveTab(tab.id)}
-              className="flex-1 justify-start"
-            >
-              <Icon className="w-4 h-4 mr-2" />
-              {tab.name}
-            </Button>
-          )
-        })}
-      </div>
-
-      {/* Tab Content */}
-      {renderContent()}
+        </div>
+      </footer>
     </div>
-  )
+  );
 }
