@@ -21,7 +21,7 @@ export const useWalletStore = create<WalletState>((set) => ({
     try {
       set({ isConnecting: true });
       
-      // Options pour la connexion
+      // Connexion avec get-starknet v3
       const starknet = await connect({
         modalMode: "alwaysAsk",
         modalTheme: "dark"
@@ -31,39 +31,41 @@ export const useWalletStore = create<WalletState>((set) => ({
         throw new Error('No wallet extension found. Please install Argent X or Braavos.');
       }
 
-      // Enable le wallet (demande la permission)
-      await starknet.enable({ starknetVersion: "v5" });
+      // Enable le wallet (demande la permission à l'utilisateur)
+      await (starknet as any).enable();
 
       // Vérifier que le wallet est bien connecté
-      if (!starknet.isConnected) {
+      if (!(starknet as any).isConnected) {
         throw new Error('Wallet connection failed');
       }
 
-      // Récupérer le compte
-      const account = starknet.account;
+      // Récupérer le compte - l'account est maintenant directement disponible
+      const account = (starknet as any).account as AccountInterface;
       
       if (!account) {
         throw new Error('No account found in wallet');
       }
 
-      // Récupérer l'adresse
-      const address = account.address || starknet.selectedAddress;
+      // Récupérer l'adresse depuis l'account
+      const address = account.address;
       
       if (!address) {
         throw new Error('No address found');
       }
 
-      console.log('Wallet connected successfully:', address);
+      console.log('✅ Wallet connected successfully');
+      console.log('Address:', address);
+      console.log('Chain ID:', (starknet as any).chainId);
 
       set({
-        account: account as AccountInterface,
+        account: account,
         address: address,
         isConnected: true,
         isConnecting: false,
       });
 
     } catch (error: any) {
-      console.error('Failed to connect wallet:', error);
+      console.error('❌ Failed to connect wallet:', error);
       set({ 
         isConnecting: false,
         account: null,
@@ -71,11 +73,13 @@ export const useWalletStore = create<WalletState>((set) => ({
         isConnected: false
       });
       
-      // Message d'erreur plus explicite
+      // Messages d'erreur plus explicites
       if (error.message?.includes('No wallet')) {
         throw new Error('Please install Argent X or Braavos wallet extension');
-      } else if (error.message?.includes('User abort')) {
+      } else if (error.message?.includes('abort') || error.message?.includes('reject') || error.message?.includes('cancel')) {
         throw new Error('Connection cancelled by user');
+      } else if (error.message?.includes('network')) {
+        throw new Error('Wrong network. Please switch to Sepolia Testnet');
       } else {
         throw new Error(error.message || 'Failed to connect wallet');
       }
@@ -85,6 +89,7 @@ export const useWalletStore = create<WalletState>((set) => ({
   disconnectWallet: async () => {
     try {
       await disconnect({ clearLastWallet: true });
+      console.log('👋 Wallet disconnected');
       set({
         account: null,
         address: null,

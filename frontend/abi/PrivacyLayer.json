@@ -1,0 +1,247 @@
+[
+  {
+    "type": "impl",
+    "name": "PrivacyLayerImpl",
+    "interface_name": "privacy_layer::IPrivacyLayer"
+  },
+  {
+    "type": "struct",
+    "name": "core::integer::u256",
+    "members": [
+      {
+        "name": "low",
+        "type": "core::integer::u128"
+      },
+      {
+        "name": "high",
+        "type": "core::integer::u128"
+      }
+    ]
+  },
+  {
+    "type": "enum",
+    "name": "core::bool",
+    "variants": [
+      {
+        "name": "False",
+        "type": "()"
+      },
+      {
+        "name": "True",
+        "type": "()"
+      }
+    ]
+  },
+  {
+    "type": "struct",
+    "name": "privacy_layer::PrivacySettings",
+    "members": [
+      {
+        "name": "hide_amounts",
+        "type": "core::bool"
+      },
+      {
+        "name": "hide_staking_history",
+        "type": "core::bool"
+      },
+      {
+        "name": "use_zero_knowledge",
+        "type": "core::bool"
+      },
+      {
+        "name": "encryption_enabled",
+        "type": "core::bool"
+      }
+    ]
+  },
+  {
+    "type": "interface",
+    "name": "privacy_layer::IPrivacyLayer",
+    "items": [
+      {
+        "type": "function",
+        "name": "create_private_stake",
+        "inputs": [
+          {
+            "name": "encrypted_amount",
+            "type": "core::felt252"
+          },
+          {
+            "name": "commitment",
+            "type": "core::felt252"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "core::integer::u256"
+          }
+        ],
+        "state_mutability": "external"
+      },
+      {
+        "type": "function",
+        "name": "verify_private_stake",
+        "inputs": [
+          {
+            "name": "stake_id",
+            "type": "core::integer::u256"
+          },
+          {
+            "name": "proof",
+            "type": "core::array::Array::<core::felt252>"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "core::bool"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_stake_commitment",
+        "inputs": [
+          {
+            "name": "stake_id",
+            "type": "core::integer::u256"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "core::felt252"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "update_private_stake",
+        "inputs": [
+          {
+            "name": "stake_id",
+            "type": "core::integer::u256"
+          },
+          {
+            "name": "new_commitment",
+            "type": "core::felt252"
+          }
+        ],
+        "outputs": [],
+        "state_mutability": "external"
+      },
+      {
+        "type": "function",
+        "name": "generate_stake_proof",
+        "inputs": [
+          {
+            "name": "stake_id",
+            "type": "core::integer::u256"
+          },
+          {
+            "name": "secret",
+            "type": "core::felt252"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "core::array::Array::<core::felt252>"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "verify_proof",
+        "inputs": [
+          {
+            "name": "proof",
+            "type": "core::array::Array::<core::felt252>"
+          },
+          {
+            "name": "commitment",
+            "type": "core::felt252"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "core::bool"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_privacy_settings",
+        "inputs": [
+          {
+            "name": "user",
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "privacy_layer::PrivacySettings"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "set_privacy_settings",
+        "inputs": [
+          {
+            "name": "settings",
+            "type": "privacy_layer::PrivacySettings"
+          }
+        ],
+        "outputs": [],
+        "state_mutability": "external"
+      },
+      {
+        "type": "function",
+        "name": "set_verification_key",
+        "inputs": [
+          {
+            "name": "key",
+            "type": "core::felt252"
+          }
+        ],
+        "outputs": [],
+        "state_mutability": "external"
+      },
+      {
+        "type": "function",
+        "name": "set_encryption_key",
+        "inputs": [
+          {
+            "name": "key",
+            "type": "core::felt252"
+          }
+        ],
+        "outputs": [],
+        "state_mutability": "external"
+      }
+    ]
+  },
+  {
+    "type": "constructor",
+    "name": "constructor",
+    "inputs": [
+      {
+        "name": "admin",
+        "type": "core::starknet::contract_address::ContractAddress"
+      },
+      {
+        "name": "staking_vault",
+        "type": "core::starknet::contract_address::ContractAddress"
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "privacy_layer::PrivacyLayer::Event",
+    "kind": "enum",
+    "variants": []
+  }
+]

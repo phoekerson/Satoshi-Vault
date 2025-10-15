@@ -1,162 +1,194 @@
-import { useState, useCallback } from 'react';
-import { Contract } from 'starknet';
 import { useWalletStore } from '@/store/walletStore';
-import { CONTRACTS, STAKING_VAULT_ABI } from '@/config/contracts';
-import toast from 'react-hot-toast';
+import { Contract, cairo } from 'starknet';
+import stakingVaultAbi from '@/abi/BitcoinStakingVault.json';
+import { ADDRESSES } from '@/lib/addresses';
+import { getProvider } from '@/lib/provider';
 
-export interface StakeInfo {
-  amount: string;
-  start_time: number;
-  duration: number;
-  claimed_rewards: string;
-  is_active: boolean;
-  apy_at_stake: string;
-}
+export const useStaking = () => {
+  const { account, isConnected } = useWalletStore();
 
-export function useStaking() {
-  const { account, address } = useWalletStore();
-  const [isLoading, setIsLoading] = useState(false);
+  // Contract pour les lectures (view functions)
+  const getReadContract = () => {
+    const provider = getProvider();
+    return new Contract(stakingVaultAbi as any, ADDRESSES.STAKING_VAULT, provider);
+  };
 
-  const stakeBitcoin = useCallback(async (amount: string, duration: number) => {
-    if (!account) {
-      toast.error('Please connect your wallet');
-      return null;
-    }
+  // Contract pour les écritures (external functions)
+  const getWriteContract = () => {
+    if (!account) throw new Error('Wallet not connected');
+    return new Contract(stakingVaultAbi as any, ADDRESSES.STAKING_VAULT, account);
+  };
 
+  const stakeBitcoin = async (amountInSatoshis: string, durationInDays: number) => {
     try {
-      setIsLoading(true);
-      const contract = new Contract(STAKING_VAULT_ABI, CONTRACTS.STAKING_VAULT, account);
+      console.log('🔄 Starting stake transaction...');
+      console.log('Amount (satoshis):', amountInSatoshis);
+      console.log('Duration (days):', durationInDays);
       
-      const result = await contract.stake_bitcoin(amount, duration);
-      await account.waitForTransaction(result.transaction_hash);
+      const contract = getWriteContract();
       
-      toast.success('Bitcoin staked successfully!');
-      return result;
+      // Convertir le montant en u256 Cairo
+      const amountU256 = cairo.uint256(amountInSatoshis);
+      console.log('Amount u256:', amountU256);
+      
+      // Vérifier que la durée est valide (30-365 jours selon le contrat)
+      if (durationInDays < 30 || durationInDays > 365) {
+        throw new Error('Duration must be between 30 and 365 days');
+      }
+      
+      // Invoquer la fonction stake_bitcoin
+      console.log('📝 Invoking stake_bitcoin...');
+      const call = contract.populate('stake_bitcoin', [amountU256, durationInDays]);
+      
+      const tx = await contract.stake_bitcoin(amountU256, durationInDays);
+      console.log('✅ Transaction submitted:', tx.transaction_hash);
+      
+      // Attendre la confirmation
+      console.log('⏳ Waiting for confirmation...');
+      const receipt = await account!.waitForTransaction(tx.transaction_hash);
+      console.log('✅ Transaction confirmed!');
+      console.log('Receipt:', receipt);
+      
+      return tx.transaction_hash;
     } catch (error: any) {
-      console.error('Stake error:', error);
-      toast.error(error.message || 'Failed to stake Bitcoin');
-      return null;
-    } finally {
-      setIsLoading(false);
+      console.error('❌ Stake error:', error);
+      
+      // Extraire et formatter les messages d'erreur du contrat
+      if (error.message?.includes('Contract is paused')) {
+        throw new Error('Staking is currently paused');
+      } else if (error.message?.includes('Amount below minimum')) {
+        throw new Error('Amount is below the minimum stake requirement');
+      } else if (error.message?.includes('Amount above maximum')) {
+        throw new Error('Amount exceeds the maximum stake limit');
+      } else if (error.message?.includes('Duration too short')) {
+        throw new Error('Staking duration must be at least 30 days');
+      } else if (error.message?.includes('Duration too long')) {
+        throw new Error('Staking duration cannot exceed 365 days');
+      } else if (error.message?.includes('insufficient')) {
+        throw new Error('Insufficient balance in your wallet');
+      } else if (error.message?.includes('rejected') || error.message?.includes('abort')) {
+        throw new Error('Transaction cancelled by user');
+      }
+      
+      throw new Error(error.message || 'Failed to stake Bitcoin');
     }
-  }, [account]);
+  };
 
-  const unstake = useCallback(async (stakeId: string) => {
-    if (!account) {
-      toast.error('Please connect your wallet');
-      return null;
-    }
-
+  const unstake = async (stakeId: string) => {
     try {
-      setIsLoading(true);
-      const contract = new Contract(STAKING_VAULT_ABI, CONTRACTS.STAKING_VAULT, account);
+      console.log('🔄 Starting unstake transaction for stake ID:', stakeId);
       
-      const result = await contract.unstake(stakeId);
-      await account.waitForTransaction(result.transaction_hash);
+      const contract = getWriteContract();
+      const stakeIdU256 = cairo.uint256(stakeId);
       
-      toast.success('Unstaked successfully!');
-      return result;
+      const tx = await contract.unstake(stakeIdU256);
+      console.log('✅ Transaction submitted:', tx.transaction_hash);
+      
+      await account!.waitForTransaction(tx.transaction_hash);
+      console.log('✅ Unstake successful!');
+      
+      return tx.transaction_hash;
     } catch (error: any) {
-      console.error('Unstake error:', error);
-      toast.error(error.message || 'Failed to unstake');
-      return null;
-    } finally {
-      setIsLoading(false);
+      console.error('❌ Unstake error:', error);
+      
+      if (error.message?.includes('Stake not active')) {
+        throw new Error('This stake is not active');
+      } else if (error.message?.includes('Stake not matured')) {
+        throw new Error('Stake period has not completed yet');
+      }
+      
+      throw new Error(error.message || 'Failed to unstake');
     }
-  }, [account]);
+  };
 
-  const claimRewards = useCallback(async (stakeId: string) => {
-    if (!account) {
-      toast.error('Please connect your wallet');
-      return null;
-    }
-
+  const claimRewards = async (stakeId: string) => {
     try {
-      setIsLoading(true);
-      const contract = new Contract(STAKING_VAULT_ABI, CONTRACTS.STAKING_VAULT, account);
+      console.log('🔄 Claiming rewards for stake ID:', stakeId);
       
-      const result = await contract.claim_rewards(stakeId);
-      await account.waitForTransaction(result.transaction_hash);
+      const contract = getWriteContract();
+      const stakeIdU256 = cairo.uint256(stakeId);
       
-      toast.success('Rewards claimed successfully!');
-      return result;
+      const tx = await contract.claim_rewards(stakeIdU256);
+      console.log('✅ Transaction submitted:', tx.transaction_hash);
+      
+      await account!.waitForTransaction(tx.transaction_hash);
+      console.log('✅ Rewards claimed!');
+      
+      return tx.transaction_hash;
     } catch (error: any) {
-      console.error('Claim error:', error);
-      toast.error(error.message || 'Failed to claim rewards');
-      return null;
-    } finally {
-      setIsLoading(false);
+      console.error('❌ Claim rewards error:', error);
+      
+      if (error.message?.includes('Stake not active')) {
+        throw new Error('This stake is not active');
+      }
+      
+      throw new Error(error.message || 'Failed to claim rewards');
     }
-  }, [account]);
+  };
 
-  const getStakeInfo = useCallback(async (stakeId: string): Promise<StakeInfo | null> => {
-    if (!account || !address) return null;
-
+  const getStakeInfo = async (userAddress: string, stakeId: string) => {
     try {
-      const contract = new Contract(STAKING_VAULT_ABI, CONTRACTS.STAKING_VAULT, account);
-      const result = await contract.get_stake_info(address, stakeId);
+      const contract = getReadContract();
+      const stakeIdU256 = cairo.uint256(stakeId);
+      
+      const result = await contract.get_stake_info(userAddress, stakeIdU256);
       
       return {
-        amount: result.amount.toString(),
-        start_time: Number(result.start_time),
-        duration: Number(result.duration),
-        claimed_rewards: result.claimed_rewards.toString(),
-        is_active: result.is_active,
-        apy_at_stake: result.apy_at_stake.toString(),
+        amount: result.amount?.toString() || '0',
+        start_time: Number(result.start_time || 0),
+        duration: Number(result.duration || 0),
+        claimed_rewards: result.claimed_rewards?.toString() || '0',
+        is_active: Boolean(result.is_active),
+        apy_at_stake: result.apy_at_stake?.toString() || '0',
       };
-    } catch (error) {
-      console.error('Get stake info error:', error);
+    } catch (error: any) {
+      console.error('❌ Get stake info error:', error);
       return null;
     }
-  }, [account, address]);
+  };
 
-  const getUserStaked = useCallback(async (): Promise<string | null> => {
-    if (!account || !address) return null;
-
+  const getTotalStaked = async () => {
     try {
-      const contract = new Contract(STAKING_VAULT_ABI, CONTRACTS.STAKING_VAULT, account);
-      const result = await contract.get_user_staked(address);
-      return result.toString();
-    } catch (error) {
-      console.error('Get user staked error:', error);
-      return null;
-    }
-  }, [account, address]);
-
-  const getTotalStaked = useCallback(async (): Promise<string | null> => {
-    if (!account) return null;
-
-    try {
-      const contract = new Contract(STAKING_VAULT_ABI, CONTRACTS.STAKING_VAULT, account);
+      const contract = getReadContract();
       const result = await contract.get_total_staked();
       return result.toString();
     } catch (error) {
-      console.error('Get total staked error:', error);
-      return null;
+      console.error('❌ Get total staked error:', error);
+      return '0';
     }
-  }, [account]);
+  };
 
-  const getCurrentAPY = useCallback(async (): Promise<string | null> => {
-    if (!account) return null;
-
+  const getUserStaked = async () => {
     try {
-      const contract = new Contract(STAKING_VAULT_ABI, CONTRACTS.STAKING_VAULT, account);
+      if (!account) return '0';
+      const contract = getReadContract();
+      const result = await contract.get_user_staked(account.address);
+      return result.toString();
+    } catch (error) {
+      console.error('❌ Get user staked error:', error);
+      return '0';
+    }
+  };
+
+  const getCurrentAPY = async () => {
+    try {
+      const contract = getReadContract();
       const result = await contract.get_current_apy();
       return result.toString();
     } catch (error) {
-      console.error('Get APY error:', error);
-      return null;
+      console.error('❌ Get current APY error:', error);
+      return '0';
     }
-  }, [account]);
+  };
 
   return {
     stakeBitcoin,
     unstake,
     claimRewards,
     getStakeInfo,
-    getUserStaked,
     getTotalStaked,
+    getUserStaked,
     getCurrentAPY,
-    isLoading,
+    isConnected,
   };
-}
+};
