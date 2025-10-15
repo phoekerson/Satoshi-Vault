@@ -8,7 +8,6 @@
     "start": "next start"
   },
   "dependencies": {
-    "@argent/get-starknet": "^6.3.0",
     "@starknet-io/get-starknet": "^4.0.8",
     "clsx": "^2.1.0",
     "get-starknet": "^4.0.0",
