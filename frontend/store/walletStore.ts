@@ -21,31 +21,64 @@ export const useWalletStore = create<WalletState>((set) => ({
     try {
       set({ isConnecting: true });
       
-      const starknet = await connect();
-
+      // Options pour la connexion
+      const starknet = await connect({
+        modalMode: "alwaysAsk",
+        modalTheme: "dark"
+      });
+      
       if (!starknet) {
-        throw new Error('No wallet found');
+        throw new Error('No wallet extension found. Please install Argent X or Braavos.');
       }
 
-      // Le wallet retourné a déjà account après connect()
-      // On utilise un type assertion pour accéder aux propriétés
-      const walletAccount = (starknet as any).account;
-      const walletAddress = (starknet as any).selectedAddress || walletAccount?.address;
+      // Enable le wallet (demande la permission)
+      await starknet.enable({ starknetVersion: "v5" });
 
-      if (walletAccount && walletAddress) {
-        set({
-          account: walletAccount as AccountInterface,
-          address: walletAddress,
-          isConnected: true,
-          isConnecting: false,
-        });
-      } else {
-        throw new Error('Failed to get account from wallet');
+      // Vérifier que le wallet est bien connecté
+      if (!starknet.isConnected) {
+        throw new Error('Wallet connection failed');
       }
-    } catch (error) {
+
+      // Récupérer le compte
+      const account = starknet.account;
+      
+      if (!account) {
+        throw new Error('No account found in wallet');
+      }
+
+      // Récupérer l'adresse
+      const address = account.address || starknet.selectedAddress;
+      
+      if (!address) {
+        throw new Error('No address found');
+      }
+
+      console.log('Wallet connected successfully:', address);
+
+      set({
+        account: account as AccountInterface,
+        address: address,
+        isConnected: true,
+        isConnecting: false,
+      });
+
+    } catch (error: any) {
       console.error('Failed to connect wallet:', error);
-      set({ isConnecting: false });
-      throw error;
+      set({ 
+        isConnecting: false,
+        account: null,
+        address: null,
+        isConnected: false
+      });
+      
+      // Message d'erreur plus explicite
+      if (error.message?.includes('No wallet')) {
+        throw new Error('Please install Argent X or Braavos wallet extension');
+      } else if (error.message?.includes('User abort')) {
+        throw new Error('Connection cancelled by user');
+      } else {
+        throw new Error(error.message || 'Failed to connect wallet');
+      }
     }
   },
 
@@ -59,6 +92,12 @@ export const useWalletStore = create<WalletState>((set) => ({
       });
     } catch (error) {
       console.error('Failed to disconnect wallet:', error);
+      // Forcer la déconnexion même en cas d'erreur
+      set({
+        account: null,
+        address: null,
+        isConnected: false,
+      });
     }
   },
 }));
